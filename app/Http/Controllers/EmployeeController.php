@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use App\Models\Employee;
 use App\Models\Position;
 
@@ -78,14 +80,16 @@ class EmployeeController extends Controller
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        // INSERT QUERY
-        // DB::table('employees')->insert([
-        //     'firstname' => $request->firstName,
-        //     'lastname' => $request->lastName,
-        //     'email' => $request->email,
-        //     'age' => $request->age,
-        //     'position_id' => $request->position,
-        // ]);
+        // Get File
+        $file = $request->file('cv');
+
+        if ($file != null) {
+            $originalFilename = $file->getClientOriginalName();
+            $encryptedFilename = $file->hashName();
+
+            // Store File
+            $file->store('public/files');
+        }
 
         // ELOQUENT
         $employee = New Employee;
@@ -94,6 +98,12 @@ class EmployeeController extends Controller
         $employee->email = $request->email;
         $employee->age = $request->age;
         $employee->position_id = $request->position;
+
+        if ($file != null) {
+            $employee->original_filename = $originalFilename;
+            $employee->encrypted_filename = $encryptedFilename;
+        }
+
         $employee->save();
 
         return redirect()->route('employees.index');
@@ -165,22 +175,33 @@ class EmployeeController extends Controller
      //         'age' => $request->input('age'),
      //         'position_id' => $request->input('position')
      //     ]);
-    $messages = [
-        'required' => ':Attribute harus diisi.',
-        'email' => 'Isi :attribute dengan format yang benar',
-        'numeric' => 'Isi :attribute dengan angka'
-    ];
+        $messages = [
+            'required' => ':Attribute harus diisi.',
+            'email' => 'Isi :attribute dengan format yang benar',
+            'numeric' => 'Isi :attribute dengan angka'
+        ];
 
-    $validator = Validator::make($request->all(), [
-        'firstName' => 'required',
-        'lastName' => 'required',
-        'email' => 'required|email',
-        'age' => 'required|numeric',
-    ], $messages);
+        $validator = Validator::make($request->all(), [
+            'firstName' => 'required',
+            'lastName' => 'required',
+            'email' => 'required|email',
+            'age' => 'required|numeric',
+        ], $messages);
 
-    if ($validator->fails()) {
-        return redirect()->back()->withErrors($validator)->withInput();
-    }
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+            //Get File
+        $file = $request->file('cv');
+
+        if ($file != null) {
+            $originalFilename = $file->getClientOriginalName();
+            $encryptedFilename = $file->hashName();
+
+            //Store File
+            $file->store('public/files');
+        }
 
          //ELOQUENT
         $employee = Employee::find($id);
@@ -189,9 +210,15 @@ class EmployeeController extends Controller
         $employee->email = $request->email;
         $employee->age = $request->age;
         $employee->position_id = $request->position;
+
+        if ($file != null){
+            $employee->original_filename = $originalFilename;
+            $employee->encrypted_filename = $encryptedFilename;
+        }
+
         $employee->save();
 
-        return redirect()->route('employees.index');
+        return redirect()->route('employees.index')->with('succes', 'Employee update succesfully');
     }
 
     /**
@@ -199,14 +226,36 @@ class EmployeeController extends Controller
      */
     public function destroy(string $id)
     {
-        // QUERY BUILDER
-        // DB::table('employees')
-        //    ->where('id', $id)
-        //    ->delete();
-
-        // ELOQUENT
         Employee::find($id)->delete();
 
-        return redirect()->route('employees.index');
+        if ($employee) {
+                //hapus file cv jika ada
+            if ($employee->cv && Storage::exists('public/files/' . $employee->cv)) {
+                Storage::delete('public/files/' . $employee->cv);
+            }
+            // QUERY BUILDER
+            // DB::table('employees')
+            //    ->where('id', $id)
+            //    ->delete();
+
+            // ELOQUENT
+            $employee->delete();
+
+
+            return redirect()->route('employees.index')->with('success', 'Employee deleted successfully');
+        } else {
+            return redirect()->route('employees.index')->with('error', 'Employee not found');
+        }
+    }
+
+    public function downloadFile($employeeId)
+    {
+        $employee = Employee::find($employeeId);
+        $encryptedFilename = 'public/files/'.$employee->encrypted_filename;
+        $downloadFilename = Str::lower($employee->firstname.'_'.$employee->lastname.'_cv.pdf');
+
+        if(Storage::exists($encryptedFilename)) {
+            return Storage::download($encryptedFilename, $downloadFilename);
+        }
     }
 }
