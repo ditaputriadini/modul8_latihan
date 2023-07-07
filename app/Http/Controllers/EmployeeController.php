@@ -9,22 +9,45 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Models\Employee;
 use App\Models\Position;
+use RealRashid\SweetAlert\Facades\Alert;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\EmployeesExport;
+use PDF;
+
 
 class EmployeeController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
-    {
-        $pageTitle = 'Employee List';
-            // ELOQUENT
-        $employees = Employee ::all();
 
-    return view('employee.index', [
-        'pageTitle' => $pageTitle,
-        'employees' => $employees
-    ]);
+     public function index()
+     {
+         $pageTitle = 'Employee List';
+
+         confirmDelete();
+
+         return view('employee.index', compact('pageTitle'));
+     }
+
+    //  public function index()
+    //  {
+    //      $pageTitle = 'Employee List';
+
+    //      return view('employee.index', compact('pageTitle'));
+    //  }
+
+    // public function index()
+    // {
+    //     $pageTitle = 'Employee List';
+    //         // ELOQUENT
+    //     $employees = Employee ::all();
+
+    // return view('employee.index', [
+    //     'pageTitle' => $pageTitle,
+    //     'employees' => $employees
+    // ]);
+
         // RAW SQL QUERY
         // $employees = DB::select('
         //    select *, employees.id as employee_id, positions.name as position_name
@@ -37,7 +60,7 @@ class EmployeeController extends Controller
         // ->select ('*', 'employees.id as employee_id', 'positions.name as position_name')
         // ->leftJoin ('positions', 'employees.position_id', '=', 'positions.id')
         // ->get();
-    }
+
 
     /**
      * Show the form for creating a new resource.
@@ -105,6 +128,10 @@ class EmployeeController extends Controller
         }
 
         $employee->save();
+
+        return redirect()->route('employees.index');
+
+        Alert::success('Added Successfully', 'Employee Data Added Successfully.');
 
         return redirect()->route('employees.index');
     }
@@ -219,6 +246,10 @@ class EmployeeController extends Controller
         $employee->save();
 
         return redirect()->route('employees.index')->with('succes', 'Employee update succesfully');
+
+        Alert::success('Changed Successfully', 'Employee Data Changed Successfully.');
+
+        return redirect()->route('employees.index');
     }
 
     /**
@@ -226,7 +257,7 @@ class EmployeeController extends Controller
      */
     public function destroy(string $id)
     {
-        Employee::find($id)->delete();
+        $employee = Employee::find($id);
 
         if ($employee) {
                 //hapus file cv jika ada
@@ -246,6 +277,10 @@ class EmployeeController extends Controller
         } else {
             return redirect()->route('employees.index')->with('error', 'Employee not found');
         }
+
+        Alert::success('Deleted Successfully', 'Employee Data Deleted Successfully.');
+
+        return redirect()->route('employees.index');
     }
 
     public function downloadFile($employeeId)
@@ -257,5 +292,33 @@ class EmployeeController extends Controller
         if(Storage::exists($encryptedFilename)) {
             return Storage::download($encryptedFilename, $downloadFilename);
         }
+    }
+
+    public function getData(Request $request)
+    {
+        $employees = Employee::with('position');
+
+        if ($request->ajax()) {
+            return datatables()->of($employees)
+                ->addIndexColumn()
+                ->addColumn('actions', function($employee) {
+                    return view('employee.actions', compact('employee'));
+                })
+                ->toJson();
+        }
+    }
+
+    public function exportExcel()
+    {
+        return Excel::download(new EmployeesExport, 'employees.xlsx');
+    }
+
+    public function exportPdf()
+    {
+        $employees = Employee::all();
+
+        $pdf = PDF::loadView('employee.export_pdf', compact('employees'));
+
+        return $pdf->download('employees.pdf');
     }
 }

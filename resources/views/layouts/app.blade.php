@@ -37,11 +37,11 @@
                     <ul class="navbar-nav ms-auto">
                         <!-- Authentication Links -->
                         @guest
-                            {{-- @if (Route::has('login'))
+                            @if (Route::has('login'))
                                 <li class="nav-item">
                                     <a class="nav-link" href="{{ route('login') }}">{{ __('Login') }}</a>
                                 </li>
-                            @endif --}}
+                            @endif
 
                             @if (Route::has('logout'))
                                 <li class="nav-item">
@@ -82,5 +82,12 @@
             @yield('content')
         </main>
     </div>
+
+    {{--@include('layouts.nav')
+    @yield('content')
+    @vite('resources/js/app.js') --}}
+    @include('sweetalert::alert')
+    @stack('scripts')
+
 </body>
 </html>

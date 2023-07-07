@@ -119,3 +119,12 @@ Route::get('download-file/{employeeId}', [EmployeeController::class, 'downloadFi
 //Membuat route untuk mengakses halaman edit
 Route::get('/employees/{employee}/edit' , [EmployeeController::class, 'edit'])->name('employees.edit');
 Route::put('/employees/{employee}' , [EmployeeController::class, 'update'])->name('employees.update');
+
+//URI /getEmployees, mengarahkan ke method getData() pada EmployeeController
+Route::get('getEmployees', [EmployeeController::class, 'getData'])->name('employees.getData');
+
+//URI /exportExcel, mengarahkan ke method exportExcel() pada EmployeeController
+Route::get('exportExcel', [EmployeeController::class, 'exportExcel'])->name('employees.exportExcel');
+
+
+Route::get('exportPdf', [EmployeeController::class, 'exportPdf'])->name('employees.exportPdf');

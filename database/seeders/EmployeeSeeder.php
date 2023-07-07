@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Employee;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +37,6 @@ class EmployeeSeeder extends Seeder
                 'position_id' => 3
             ],
         ]);
-        Employee::factory()->count(10)->create();
+        Employee::factory()->count(200)->create();
     }
 }
